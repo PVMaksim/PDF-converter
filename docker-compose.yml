@@ -1,105 +1,133 @@
 version: "3.9"
 
 services:
-
+  # ===========================================================================
+  # PostgreSQL — база данных
+  # ===========================================================================
   postgres:
     image: postgres:15-alpine
     container_name: pdf_bot_db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: pdf_bot
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
+  # ===========================================================================
+  # Redis — брокер для Celery
+  # ===========================================================================
   redis:
     image: redis:7-alpine
     container_name: pdf_bot_redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - internal
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
+  # ===========================================================================
+  # MinIO — S3-совместимое хранилище файлов
+  # ===========================================================================
   minio:
     image: minio/minio:latest
     container_name: pdf_bot_minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
     ports:
       - "9000:9000"   # S3 API
       - "9001:9001"   # Web console
     volumes:
       - minio_data:/data
+    networks:
+      - internal
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 15s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
+  # ===========================================================================
+  # Gotenberg — сервис конвертации (LibreOffice headless)
+  # ===========================================================================
   gotenberg:
     image: gotenberg/gotenberg:8
     container_name: pdf_bot_gotenberg
-    ports:
-      - "3000:3000"
-    # No network access — isolated converter
+    # Изолированная сеть — нет доступа в интернет
     networks:
       - internal
     restart: unless-stopped
 
+  # ===========================================================================
+  # Backend — FastAPI приложение
+  # ===========================================================================
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docker/Dockerfile
     container_name: pdf_bot_backend
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:password@postgres:5432/pdf_bot
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/pdf_bot
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       GOTENBERG_URL: http://gotenberg:3000
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - default
       - internal
     command: >
-      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ===========================================================================
+  # Celery Worker — фоновая обработка конвертации
+  # ===========================================================================
   celery_worker:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docker/Dockerfile
     container_name: pdf_bot_celery_worker
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:password@postgres:5432/pdf_bot
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/pdf_bot
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
@@ -110,30 +138,44 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - default
       - internal
-    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A src.tasks.celery_app.celery_app worker --loglevel=info --concurrency=2
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ===========================================================================
+  # Celery Beat — планировщик задач (очистка, статистика)
+  # ===========================================================================
   celery_beat:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docker/Dockerfile
     container_name: pdf_bot_celery_beat
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:password@postgres:5432/pdf_bot
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/pdf_bot
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
     depends_on:
       - redis
-    command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info
+    networks:
+      - internal
+    command: celery -A src.tasks.celery_app.celery_app beat --loglevel=info
+    restart: unless-stopped
 
 networks:
   default:
   internal:
-    internal: true   # Gotenberg has no internet access
+    internal: true   # Gotenberg и БД без доступа в интернет
 
 volumes:
   postgres_data:

@@ -38,14 +38,26 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmagic1 tesseract-ocr
+
       - name: Install dependencies
-        run: pip install -r backend/requirements.txt pytest pytest-asyncio
+        run: pip install -r requirements.txt pytest pytest-asyncio
 
       - name: Run unit tests
-        working-directory: backend
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/pdf_bot_test
           REDIS_URL: redis://localhost:6379/0
           TELEGRAM_BOT_TOKEN: test-token
-          SECRET_KEY: ci-secret-key
+          SECRET_KEY: ci-secret-key-for-testinging-only
         run: pytest tests/unit -v
+
+      - name: Run linting (optional)
+        env:
+          SECRET_KEY: test-key
+          TELEGRAM_BOT_TOKEN: test-token
+        run: |
+          pip install flake8
+          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics

@@ -4,11 +4,36 @@
 
 ### 1.1. Настройка пользователя деплой
 
-**На сервере (как root или sudo):**
+**На сервере (с sudo):**
 ```bash
-# Создай пользователя деплой (если нет)
-adduser deploy
-usermod -aG sudo deploy
+# Создай группу для деплоя (если нет)
+sudo groupadd deployers
+
+# Создай пользователя деплой (если нет) и добавь в группу
+sudo adduser deploy --ingroup deployers
+sudo usermod -aG sudo deploy
+sudo usermod -aG docker deploy
+sudo usermod -aG deployers deploy
+
+# Рекомендуемый вариант: директория в /opt (стандартный путь для приложений)
+# Дай группе deployers права на запись в /opt
+sudo chown root:deployers /opt
+sudo chmod 775 /opt
+sudo mkdir -p /opt/pdf-converter
+sudo chown -R deploy:deployers /opt/pdf-converter
+sudo chmod -R 775 /opt/pdf-converter
+```
+
+**Проверь права:**
+```bash
+# Убедись, что пользователь deploy в нужных группах
+groups deploy
+# Должно показать: deploy sudo docker deployers
+
+# Проверь, что Docker доступен без sudo
+sudo -u deploy docker ps
+# Должно показать для свежего сервера  :
+# CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES - нет запущенных контейнеров
 ```
 
 **На локальной машине:**
@@ -19,21 +44,60 @@ ssh-copy-id deploy@your-server-ip
 
 ### 1.2. Установка Docker и Docker Compose
 
-**На сервере под пользователем deploy:**
+**На сервере (с sudo):**
 ```bash
+# Обнови список пакетов
 sudo apt update
-sudo apt install -y docker.io docker-compose
+
+# Установи зависимости
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+# Добавь официальный GPG-ключ Docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Добавь репозиторий Docker
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Обнови список пакетов с новым репозиторием
+sudo apt update
+
+# Установи Docker Engine и Docker Compose
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Если нужен старый docker-compose (не plugin), установи:
+# sudo apt install -y docker-compose
+
+# Запусти и включи автозагрузку Docker
 sudo systemctl start docker
 sudo systemctl enable docker
-sudo usermod -aG docker $USER
-# Выйди и заново зайди под пользователем deploy
+
+# Добавь пользователя deploy в группу docker
+sudo usermod -aG docker deploy
+
+# Проверь установку
+docker --version
+docker compose version
+
+# Выйди и заново зайди под пользователем deploy, чтобы изменения вступили в силу
+```
+
+**Если всё ещё есть ошибки:**
+```bash
+# Попробуй исправить сломанные пакеты
+sudo apt --fix-broken install
+
+# Или удали конфликтующие пакеты и установи заново
+sudo apt remove -y docker docker-engine docker.io containerd runc
+sudo apt autoremove -y
+# Затем повтори установку с официального репозитория
 ```
 
 ### 1.3. Создание директории проекта
 
+**На сервере (под пользователем deploy):**
 ```bash
-mkdir -p /var/www/pdf-converter
-cd /var/www/pdf-converter
+mkdir -p /opt/pdf-converter
+cd /opt/pdf-converter
 ```
 
 ---
@@ -155,7 +219,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/pdf-converter
+            cd /home/deploy/pdf-converter
             docker-compose pull
             docker-compose up -d --remove-orphans
             docker image prune -f
@@ -169,7 +233,7 @@ jobs:
 
 **На сервере под пользователем deploy:**
 ```bash
-cd /var/www
+cd /opt
 git clone https://github.com/your-username/pdf-converter.git
 cd pdf-converter
 ```
