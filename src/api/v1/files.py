@@ -5,12 +5,14 @@ Upload and download files with rate limiting.
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...config import settings
 from ...database import get_db
@@ -19,14 +21,15 @@ from ...models.file_record import FileRecord
 from ...middleware.file_validator import validate_upload
 from ...middleware.rate_limiter import limiter, get_limit_for_plan
 from ...services.storage import storage_service
+from ...schemas import FileUploadResponse, FileDownloadResponse
 
 router = APIRouter(prefix="/files", tags=["files"])
 
 
-@router.post("/upload")
-@limiter.limit(get_limit_for_plan)  # Динамический лимит
+@router.post("/upload", response_model=FileUploadResponse)
+@limiter.limit(get_limit_for_plan)
 async def upload_file(
-    request,
+    request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_optional),
@@ -144,7 +147,7 @@ async def download_file(
 
 async def get_current_user_optional(
     db: AsyncSession = Depends(get_db),
-    token: str = Depends(oauth2_scheme_optional),
+    token: str = Depends(oauth2_scheme),
 ) -> Optional[User]:
     """
     Get current user if authenticated, None otherwise.
@@ -152,7 +155,7 @@ async def get_current_user_optional(
     """
     if not token:
         return None
-    
+
     from .auth import get_current_user
     try:
         return await get_current_user(token=token, db=db)
@@ -160,7 +163,4 @@ async def get_current_user_optional(
         return None
 
 
-from fastapi.security import OAuth2PasswordBearer
-from typing import Optional
-
-oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)

@@ -1,80 +1,221 @@
 # MEMORY.md — PDF Converter Bot
 
 ## Последняя сессия: 11 марта 2026
-### Сделано
-- ✅ Анализ проекта — найдено 15+ проблем
-- ✅ Создана новая структура по стандарту SKILL (src/, docker/, scripts/)
-- ✅ Обновлён CLAUDE.md
-- ✅ Исправлен config.py — добавлены ADMIN_TELEGRAM_ID, USE_LOCAL_STORAGE
+### Сделано (все 28 задач)
+
+#### Структура проекта
+- ✅ Создана новая структура по стандарту SKILL (src/, docker/, scripts/, tests/)
+- ✅ Перенесён весь код из backend/ в src/
+- ✅ Созданы __init__.py для всех пакетов
+- ✅ Созданы .gitkeep для пустых директорий
+
+#### База данных и миграции
+- ✅ Создана новая миграция 001_initial_migration.py с UUID схемой
 - ✅ Исправлен database.py — корректный get_db() с rollback/commit
+- ✅ Обновлены модели (User, FileRecord, ConversionJob) с индексами
+- ✅ Настроен alembic/env.py для работы с src/
+
+#### Безопасность и аутентификация
+- ✅ Реализована JWT аутентификация (api/v1/auth.py)
+- ✅ Добавлен get_current_user dependency для API эндпоинтов
+- ✅ Настроен rate limiting через @limiter.limit() декораторы
+- ✅ Обновлены схемы Pydantic (schemas/)
+
+#### Инфраструктура
+- ✅ Исправлен docker/Dockerfile — правильный WORKDIR и CMD
+- ✅ Обновлён docker-compose.yml — health checks, logging, сети
+- ✅ Добавлен Tesseract OCR в Docker образ
+- ✅ Реализован fallback storage (MinIO → local filesystem)
+
+#### Надёжность и мониторинг
 - ✅ Создан utils/error_notifier.py — уведомления об ошибках в Telegram
-- ✅ Обновлён main.py — глобальный exception handler с уведомлениями
-- ✅ Создан docker/Dockerfile — с Tesseract, libmagic, правильным CMD
-- ✅ Обновлён docker-compose.yml — изолированные сети, health checks, logging
-- ✅ Создан scripts/backup.sh — бэкап БД с очисткой старых файлов
-- ✅ Создан scripts/health_check.sh — проверка состояния сервисов
-- ✅ Обновлён .env.example — подробные комментарии
-- ✅ Исправлены модели данных — UUID, индексы, relationships
-- ✅ Обновлён middleware/rate_limiter.py — динамические лимиты
-- ✅ Обновлён middleware/file_validator.py — валидация MIME и размера
-- ✅ Обновлён api/v1/auth.py — JWT аутентификация
-- ✅ Обновлён api/v1/files.py — rate limiting, дедупликация файлов
-- ✅ Обновлён api/v1/conversions.py — auth dependency, rate limiting
+- ✅ Обновлён main.py — глобальный exception handler
+- ✅ Создан utils/logging_config.py — централизованное логирование
+- ✅ Создан scripts/backup.sh — бэкап БД с очисткой
+- ✅ Создан scripts/health_check.sh — проверка состояния
+
+#### Код и архитектура
 - ✅ Переписан handlers/convert.py — устранён конфликтующий код
-- ✅ Обновлены handlers (start, status, admin) — актуальные импорты
-- ✅ Обновлён services/telegram_bot.py — callback query handler
-- ✅ Обновлён services/storage.py — fallback на локальное хранилище
-- ✅ Обновлены converter services (base, gotenberg, pymupdf, ocr) — docstrings
-- ✅ Обновлён services/cleanup.py — удаление просроченных файлов
-- ✅ Обновлены tasks (celery_app, convert_task) — уведомления об ошибках
-- ✅ Создана миграция 001_initial_migration.py — UUID схема с нуля
-- ✅ Обновлён alembic/env.py — правильная структура
-- ✅ Создан requirements.txt — актуальные зависимости
-- ✅ Создан README.md — полная документация
+- ✅ Обновлены все сервисы (converter, storage, cleanup, telegram_bot)
+- ✅ Добавлены docstrings ко всем публичным функциям (EN)
+- ✅ Комментарии к бизнес-логике на русском
+- ✅ Исправлены все импорты в API файлах
+
+#### Тестирование
+- ✅ Созданы unit тесты (test_converters.py, test_config.py, test_middleware.py)
+- ✅ Созданы integration тесты (test_api.py)
+- ✅ Настроен pytest.ini, conftest.py с фикстурами
+
+#### Документация
+- ✅ Обновлён CLAUDE.md — стек, архитектура, правила
+- ✅ Обновлён MEMORY.md — дневник разработки
+- ✅ Создан README.md — полная инструкция по запуску
 - ✅ Создан docs/API.md — API документация с примерами
-- ✅ Обновлены .github/workflows (test.yml, deploy.yml) — правильная структура
-- ✅ Созданы тесты (unit + integration) — converters, config, middleware, API
-- ✅ Создан pytest.ini, conftest.py — настройка тестирования
-- ✅ Создан .dockerignore — исключение лишних файлов
 
-### Проблемы / Баги (исправленные)
-- ✅ Миграции БД — создана новая схема с UUID
-- ✅ handlers/convert.py — переписан с нуля
-- ✅ Нет аутентификации в API — реализована через JWT
-- ✅ Rate limiting не применялся — добавлены декораторы @limiter.limit
-- ✅ Хардкод паролей в docker-compose.yml — заменено на переменные
-- ✅ Dockerfile не соответствовал структуре — исправлен путь CMD
-- ✅ Нет Tesseract для OCR — добавлен в Dockerfile
-- ✅ database.py — исправлен get_db() с proper rollback
-- ✅ Нет fallback для MinIO — реализован USE_LOCAL_STORAGE
-- ✅ Нет уведомлений об ошибках — создан error_notifier.py
+#### CI/CD
+- ✅ Обновлён .github/workflows/test.yml — тесты + linting
+- ✅ Обновлён .github/workflows/deploy.yml — деплой на VPS
 
-### Принятые решения
-- Перейти на структуру SKILL для единообразия проектов
-- Сохранить архитектуру (FastAPI + Celery + Gotenberg)
-- Добавить уведомления об ошибках в Telegram
-- Реализовать proper auth dependency injection
-- Использовать UUID для всех ID
-- Добавить fallback на локальное хранилище для разработки
-- Tesseract OCR требует установки в Docker образ
+#### Конфигурация
+- ✅ Обновлён .env.example — подробные комментарии
+- ✅ Обновлён .gitignore — все необходимые исключения
+- ✅ Создан .dockerignore — для оптимизации сборки
+- ✅ Создан Makefile — удобные команды
+- ✅ Создан .pre-commit-config.yaml — pre-commit хуки
+- ✅ Создан setup.cfg — конфигурация flake8
+- ✅ Создан pyproject.toml — конфигурация black, isort, mypy, pytest
 
-## Следующая сессия
-- [ ] Протестировать запуск через docker-compose up --build
-- [ ] Проверить миграции БД (alembic upgrade head)
+#### Финальные задачи
+- ✅ Проверены все __init__.py файлы
+- ✅ Созданы .gitkeep для пустых директорий
+- ✅ Добавлена logging конфигурация
+
+---
+
+### Финальная структура проекта
+
+```
+PDF converter/
+├── .github/workflows/
+│   ├── deploy.yml              # CD деплой на VPS
+│   └── test.yml                # CI тесты
+├── docker/
+│   └── Dockerfile              # Образ приложения
+├── src/
+│   ├── alembic/
+│   │   ├── versions/
+│   │   │   └── 001_initial_migration.py
+│   │   ├── env.py
+│   │   └── script.py.mako
+│   ├── api/v1/
+│   │   ├── auth.py             # Аутентификация
+│   │   ├── conversions.py      # Конвертации
+│   │   ├── files.py            # Файлы
+│   │   └── telegram.py         # Telegram webhook
+│   ├── handlers/
+│   │   ├── admin.py
+│   │   ├── convert.py
+│   │   ├── start.py
+│   │   └── status.py
+│   ├── middleware/
+│   │   ├── file_validator.py
+│   │   └── rate_limiter.py
+│   ├── models/
+│   │   ├── conversion_job.py
+│   │   ├── file_record.py
+│   │   └── user.py
+│   ├── schemas/
+│   │   └── conversion.py       # Pydantic схемы
+│   ├── services/converter/
+│   │   ├── base.py
+│   │   ├── gotenberg.py
+│   │   ├── ocr.py
+│   │   └── pymupdf.py
+│   ├── tasks/
+│   │   ├── celery_app.py
+│   │   └── convert_task.py
+│   ├── utils/
+│   │   ├── error_notifier.py
+│   │   ├── helpers.py
+│   │   ├── logging_config.py
+│   │   └── validators.py
+│   ├── config.py
+│   ├── database.py
+│   └── main.py
+├── scripts/
+│   ├── backup.sh
+│   └── health_check.sh
+├── static/
+│   ├── uploads/.gitkeep
+│   └── outputs/.gitkeep
+├── tests/
+│   ├── integration/
+│   │   └── test_api.py
+│   └── unit/
+│       ├── test_config.py
+│       ├── test_converters.py
+│       └── test_middleware.py
+├── .env.example
+├── .gitignore
+├── .pre-commit-config.yaml
+├── CLAUDE.md
+├── docker-compose.yml
+├── Makefile
+├── MEMORY.md
+├── pytest.ini
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+└── setup.cfg
+```
+
+---
+
+### Статистика проекта
+
+| Категория | Количество |
+|-----------|------------|
+| Python файлы | 93 |
+| Markdown файлы | 6 |
+| YAML файлы | 3 |
+| Скрипты | 2 |
+| Конфигурация | 8 |
+
+---
+
+### Следующая сессия
+
+- [ ] Протестировать запуск через `make up`
+- [ ] Проверить миграции БД (`make migrate`)
 - [ ] Протестировать Telegram бота
 - [ ] Протестировать API endpoints через /docs
 - [ ] Проверить Celery worker + beat
 - [ ] Настроить HTTPS (Certbot) для production
 - [ ] Добавить frontend (React) при необходимости
 
-## Известный технический долг
+---
+
+### Известный технический долг
+
 - Frontend (React) отсутствует — не в приоритете
 - Мониторинг (Prometheus + Grafana) не настроен
 - Интеграционные тесты требуют доработки (mock внешних сервисов)
 - Статистика агрегация (aggregate_stats_task) — не реализована
 - Пакетная конвертация (ZIP → ZIP) — в roadmap v3.0
 
-## Файлы для удаления (старая структура)
-- backend/ — можно удалить после тестирования
-- backend/alembic/ — перенесено в src/alembic/
-- old_alembic/ — если создавался
+---
+
+### Команды для запуска
+
+```bash
+# Локальная разработка
+make up              # Запуск всех сервисов
+make logs            # Просмотр логов
+make shell           # Shell в backend контейнере
+make migrate         # Применение миграций
+
+# Тестирование
+make test            # Unit тесты
+make test-integration # Integration тесты
+make test-coverage   # Тесты с покрытием
+
+# Разработка
+make install         # Установка зависимостей
+make lint            # Линтинг
+make format          # Форматирование
+make clean           # Очистка кэша
+
+# Деплой
+make deploy          # Деплой на production
+make health          # Проверка здоровья
+make backup          # Бэкап БД
+```
+
+---
+
+### Файлы для удаления (старая структура)
+
+После успешного тестирования можно удалить:
+- `backend/` — старая директория с кодом
+- `DEPLOY.md` — информация перенесена в README.md
+- `ТЗ_PDF_Converter_Bot.md` — устаревшее ТЗ

@@ -9,31 +9,19 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...config import settings
 from ...database import get_db
 from ...models.user import User
+from ...schemas import Token, UserCreate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Настройки безопасности
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
-
-
-class Token(BaseModel):
-    """JWT token response."""
-    access_token: str
-    token_type: str
-
-
-class UserCreate(BaseModel):
-    """User registration request."""
-    email: str
-    password: str
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

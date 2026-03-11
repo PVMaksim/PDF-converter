@@ -16,12 +16,10 @@ from .middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 from .api.v1 import auth, conversions, files, telegram
 from .services.telegram_bot import build_application, set_webhook
 from .utils.error_notifier import notify_admin, notify_startup
+from .utils.logging_config import setup_logging
 
 # Настраиваем логирование
-logging.basicConfig(
-    level=logging.DEBUG if settings.DEBUG else logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 

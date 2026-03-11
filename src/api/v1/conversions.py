@@ -5,7 +5,7 @@ Create and track conversion jobs.
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +16,7 @@ from ...models.file_record import FileRecord
 from ...tasks.convert_task import run_conversion
 from ...services.converter import get_converter, ConversionError
 from ...middleware.rate_limiter import limiter, get_limit_for_plan
+from ...schemas import ConversionCreate, ConversionResponse, JobStatusResponse
 
 router = APIRouter(prefix="/conversions", tags=["conversions"])
 
@@ -23,34 +24,11 @@ router = APIRouter(prefix="/conversions", tags=["conversions"])
 SUPPORTED_FORMATS = {"docx", "xlsx", "pptx", "rtf", "html", "png", "jpeg", "jpg", "txt"}
 
 
-class ConversionRequest(BaseModel):
-    """Request to create a conversion job."""
-    file_id: UUID = Field(..., description="UUID of uploaded source file")
-    target_format: str = Field(..., min_length=3, max_length=10, description="Target format (docx, xlsx, png, etc.)")
-
-
-class ConversionResponse(BaseModel):
-    """Response with conversion job info."""
-    job_id: str
-    status: str
-    target_format: str
-
-
-class JobStatusResponse(BaseModel):
-    """Response with detailed job status."""
-    job_id: str
-    status: str
-    result_file_id: str | None = None
-    error_message: str | None = None
-    created_at: str
-    completed_at: str | None = None
-
-
 @router.post("/", response_model=ConversionResponse)
 @limiter.limit(get_limit_for_plan)
 async def create_conversion(
     request: Request,
-    body: ConversionRequest,
+    body: ConversionCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_with_plan),
 ):
@@ -150,5 +128,4 @@ async def get_current_user_with_plan(
     return await get_current_user(token=token, db=db)
 
 
-from fastapi.security import OAuth2PasswordBearer
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")

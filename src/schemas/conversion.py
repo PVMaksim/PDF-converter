@@ -1,36 +1,90 @@
+"""
+Pydantic schemas for API request/response validation.
+"""
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 
+
+# =============================================================================
+# File schemas
+# =============================================================================
+
+class FileUploadResponse(BaseModel):
+    """Response for file upload endpoint."""
+    file_id: str
+    filename: str
+    size_bytes: int
+    duplicate: bool = False
+
+
+class FileDownloadResponse(BaseModel):
+    """Response for file download endpoint."""
+    download_url: str
+    filename: str
+    expires_in: int = 3600
+
+
+# =============================================================================
+# Conversion schemas
+# =============================================================================
 
 class ConversionCreate(BaseModel):
-    """Schema for creating a conversion job"""
-    output_format: str = Field(..., min_length=3, max_length=10)
-    start_page: Optional[int] = Field(None, ge=0)
-    end_page: Optional[int] = Field(None, ge=0)
+    """Request to create a conversion job."""
+    file_id: UUID = Field(..., description="UUID of uploaded source file")
+    target_format: str = Field(..., min_length=3, max_length=10, description="Target format (docx, xlsx, png, etc.)")
 
 
 class ConversionResponse(BaseModel):
-    """Schema for conversion job response"""
-    id: int
-    user_id: int
-    input_filename: str
-    output_filename: Optional[str]
-    input_format: str
-    output_format: str
+    """Response with conversion job info."""
+    job_id: str
     status: str
-    error_message: Optional[str]
-    created_at: datetime
-    completed_at: Optional[datetime]
-
-    class Config:
-        from_attributes = True
+    target_format: str
 
 
-class ConversionStatus(BaseModel):
-    """Schema for job status check"""
-    job_id: int
+class JobStatusResponse(BaseModel):
+    """Response with detailed job status."""
+    job_id: str
     status: str
-    progress: Optional[int] = None
-    download_url: Optional[str] = None
-    error: Optional[str] = None
+    result_file_id: Optional[str] = None
+    error_message: Optional[str] = None
+    created_at: str
+    completed_at: Optional[str] = None
+
+
+# =============================================================================
+# Auth schemas
+# =============================================================================
+
+class Token(BaseModel):
+    """JWT token response."""
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserCreate(BaseModel):
+    """User registration request."""
+    email: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class UserLogin(BaseModel):
+    """User login request."""
+    username: str = Field(..., description="Email address")
+    password: str
+
+
+# =============================================================================
+# Error schemas
+# =============================================================================
+
+class ErrorResponse(BaseModel):
+    """Standard error response."""
+    detail: str
+
+
+class RateLimitResponse(BaseModel):
+    """Rate limit exceeded response."""
+    detail: str
+    retry_after: str
