@@ -10,6 +10,7 @@ Telegram-бот и REST API для конвертации PDF файлов в р
 - 🔒 **Безопасность** — валидация MIME-типов, rate limiting, JWT аутентификация
 - 📦 **Хранение** — MinIO (S3-compatible) с автоматической очисткой по TTL
 - 🔔 **Уведомления** — об ошибках в Telegram разработчика
+- 🖥️ **Web-интерфейс** — удобный React-интерфейс для работы в браузере
 
 ## Быстрый старт (локально)
 
@@ -31,10 +32,15 @@ nano .env
 ### 2. Запуск через Docker Compose
 
 ```bash
+# Запуск всех сервисов (backend + frontend)
 docker-compose up --build
+
+# Или через Makefile
+make up
 ```
 
 Сервисы будут доступны по адресам:
+- **Frontend:** http://localhost:3000
 - **API:** http://localhost:8000
 - **API Docs:** http://localhost:8000/docs
 - **MinIO Console:** http://localhost:9001 (minioadmin/minioadmin)
@@ -94,7 +100,17 @@ docker-compose up -d --build
 
 ```
 PDF converter/
-├── src/                    # Исходный код
+├── frontend/               # React приложение
+│   ├── src/
+│   │   ├── api/            # API клиент
+│   │   ├── components/     # React компоненты
+│   │   ├── pages/          # Страницы приложения
+│   │   ├── store/          # Zustand store
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── package.json
+│   └── vite.config.ts
+├── src/                    # Исходный код backend
 │   ├── main.py             # Точка входа (FastAPI + Telegram)
 │   ├── config.py           # Настройки из переменных окружения
 │   ├── database.py         # Async SQLAlchemy
@@ -104,9 +120,12 @@ PDF converter/
 │   ├── tasks/              # Celery задачи
 │   ├── handlers/           # Telegram обработчики
 │   ├── middleware/         # Rate limiter, валидаторы
+│   ├── schemas/            # Pydantic схемы
 │   └── alembic/            # Миграции БД
 ├── docker/
-│   └── Dockerfile          # Образ приложения
+│   ├── Dockerfile          # Backend образ
+│   ├── Dockerfile.frontend # Frontend образ
+│   └── nginx.conf          # Nginx конфигурация
 ├── scripts/
 │   ├── backup.sh           # Бэкап БД
 │   └── health_check.sh     # Проверка состояния
@@ -114,6 +133,26 @@ PDF converter/
 ├── requirements.txt        # Python зависимости
 └── .env.example            # Шаблон переменных окружения
 ```
+
+## Web-интерфейс
+
+Frontend приложение доступно по адресу http://localhost:3000 (после запуска `docker-compose up`).
+
+### Страницы
+
+- **Главная** (/) — информация о сервисе, поддерживаемые форматы
+- **Конвертация** (/convert) — загрузка PDF и выбор формата
+- **Статус** (/status/:jobId) — отслеживание прогресса конвертации
+- **История** (/history) — история всех конвертаций
+- **Вход/Регистрация** (/login, /register) — аутентификация
+
+### Функции
+
+- 📤 Drag & drop загрузка файлов
+- 🎯 Выбор формата конвертации
+- 📊 Прогресс-бар в реальном времени
+- 📋 История конвертаций (сохраняется в браузере)
+- 🔔 Уведомления об операциях
 
 ## REST API
 

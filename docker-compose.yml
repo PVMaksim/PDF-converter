@@ -2,6 +2,28 @@ version: "3.9"
 
 services:
   # ===========================================================================
+  # Frontend — React приложение (Nginx)
+  # ===========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: pdf_bot_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================================================
   # PostgreSQL — база данных
   # ===========================================================================
   postgres:

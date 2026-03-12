@@ -5,7 +5,7 @@
 # Example: make up, make test, make deploy
 # ===========================================================================
 
-.PHONY: help up down build logs shell test lint clean backup migrate
+.PHONY: help up down build logs shell test lint clean backup migrate frontend-dev
 
 # ---------------------------------------------------------------------------
 # Variables
@@ -15,6 +15,7 @@ DOCKER_COMPOSE := docker-compose
 PYTHON := python3
 PIP := pip3
 ALEMBIC := alembic
+NPM := npm
 
 # ---------------------------------------------------------------------------
 # Docker Compose commands
@@ -75,6 +76,30 @@ migration:
 ## Show migration status
 migration-status:
 	$(DOCKER_COMPOSE) exec backend alembic current
+
+# ---------------------------------------------------------------------------
+# Frontend commands
+# ---------------------------------------------------------------------------
+
+## Start frontend development server
+frontend-dev:
+	cd frontend && $(NPM) install && $(NPM) run dev
+
+## Build frontend
+frontend-build:
+	cd frontend && $(NPM) install && $(NPM) run build
+
+## Run frontend tests
+frontend-test:
+	cd frontend && $(NPM) test
+
+## Lint frontend
+frontend-lint:
+	cd frontend && $(NPM) run lint
+
+## Format frontend code
+frontend-format:
+	cd frontend && $(NPM) run format
 
 # ---------------------------------------------------------------------------
 # Testing commands
@@ -183,6 +208,11 @@ help:
 	@echo "  make logs            - Show logs"
 	@echo "  make build           - Build images"
 	@echo "  make shell           - Open shell in backend"
+	@echo ""
+	@echo "Frontend:"
+	@echo "  make frontend-dev    - Start frontend dev server"
+	@echo "  make frontend-build  - Build frontend"
+	@echo "  make frontend-lint   - Lint frontend code"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test            - Run unit tests"
