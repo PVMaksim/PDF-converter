@@ -43,7 +43,7 @@ def upgrade() -> None:
         sa.Column('tg_id', sa.BigInteger(), unique=True, nullable=True, index=True),
         sa.Column('email', sa.String(255), unique=True, nullable=True, index=True),
         sa.Column('hashed_password', sa.String(), nullable=True),
-        sa.Column('plan', userplan_enum, nullable=False, server_default='free'),
+        sa.Column('plan', sa.Enum('free', 'pro', 'enterprise', name='userplan'), nullable=False, server_default='free'),
         sa.Column('daily_limit', sa.Integer(), nullable=False, server_default='10'),
         sa.Column('created_at', sa.DateTime(), nullable=False, index=True),
     )
@@ -66,7 +66,7 @@ def upgrade() -> None:
         'conversion_jobs',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True, default=sa.text('gen_random_uuid()')),
         sa.Column('user_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False, index=True),
-        sa.Column('status', jobstatus_enum, nullable=False, server_default='pending', index=True),
+        sa.Column('status', sa.Enum('pending', 'processing', 'done', 'failed', name='jobstatus'), nullable=False, server_default='pending', index=True),
         sa.Column('source_format', sa.String(16), nullable=False, server_default='pdf'),
         sa.Column('target_format', sa.String(16), nullable=False),
         sa.Column('source_file_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('file_records.id'), nullable=True),
