@@ -23,6 +23,27 @@ from ...middleware.rate_limiter import limiter, get_limit_for_plan
 from ...services.storage import storage_service
 from ...schemas import FileUploadResponse, FileDownloadResponse
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
+
+
+async def get_current_user_optional(
+    db: AsyncSession = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+) -> Optional[User]:
+    """
+    Get current user if authenticated, None otherwise.
+    For endpoints that work for both authenticated and anonymous users.
+    """
+    if not token:
+        return None
+
+    from .auth import get_current_user
+    try:
+        return await get_current_user(token=token, db=db)
+    except HTTPException:
+        return None
+
+
 router = APIRouter(prefix="/files", tags=["files"])
 
 
@@ -143,24 +164,3 @@ async def download_file(
         "filename": record.original_name,
         "expires_in": 3600,
     }
-
-
-async def get_current_user_optional(
-    db: AsyncSession = Depends(get_db),
-    token: str = Depends(oauth2_scheme),
-) -> Optional[User]:
-    """
-    Get current user if authenticated, None otherwise.
-    For endpoints that work for both authenticated and anonymous users.
-    """
-    if not token:
-        return None
-
-    from .auth import get_current_user
-    try:
-        return await get_current_user(token=token, db=db)
-    except HTTPException:
-        return None
-
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
