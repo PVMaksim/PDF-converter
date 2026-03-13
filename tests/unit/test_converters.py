@@ -62,7 +62,8 @@ def test_pymupdf_supported_formats():
 
 
 @pytest.mark.asyncio
-async def test_gotenberg_health_check():
+@patch('src.services.converter.gotenberg.httpx.AsyncClient')
+async def test_gotenberg_health_check(mock_client_class):
     """Test Gotenberg health check (mocked)."""
     from src.services.converter.gotenberg import GotenbergConverter
     import httpx
@@ -72,16 +73,17 @@ async def test_gotenberg_health_check():
     # Create mock response
     mock_response = httpx.Response(200, request=httpx.Request("GET", "http://mocked:3000/health"))
     
-    # Mock the AsyncClient context manager
-    async with patch.object(httpx, 'AsyncClient') as mock_client_class:
-        mock_client_instance = MagicMock()
-        mock_client_instance.get = AsyncMock(return_value=mock_response)
-        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-        mock_client_instance.__aexit__ = AsyncMock(return_value=None)
-        mock_client_class.return_value = mock_client_instance
-        
-        result = await converter.health_check()
-        assert result is True
+    # Setup mock client instance
+    mock_client_instance = MagicMock()
+    mock_client_instance.get = AsyncMock(return_value=mock_response)
+    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+    
+    # Configure the mock class to return our instance
+    mock_client_class.return_value = mock_client_instance
+    
+    result = await converter.health_check()
+    assert result is True
 
 
 def test_ocr_converter_available():
