@@ -77,10 +77,10 @@ app.add_middleware(
 
 # Подключаем роутеры
 PREFIX = "/api/v1"
-app.include_router(auth.router, prefix=PREFIX, tags=["auth"])
-app.include_router(conversions.router, prefix=PREFIX, tags=["conversions"])
-app.include_router(files.router, prefix=PREFIX, tags=["files"])
-app.include_router(telegram.router, prefix=PREFIX, tags=["telegram"])
+app.include_router(auth, prefix=PREFIX, tags=["auth"])
+app.include_router(conversions, prefix=PREFIX, tags=["conversions"])
+app.include_router(files, prefix=PREFIX, tags=["files"])
+app.include_router(telegram, prefix=PREFIX, tags=["telegram"])
 
 
 @app.get("/")
