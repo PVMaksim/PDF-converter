@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, Request, HTTPException
 from telegram import Update
 
-from ..services.telegram_bot import get_application
+from ...services.telegram_bot import get_application
 
 router = APIRouter(prefix="/telegram", tags=["telegram"])
 logger = logging.getLogger(__name__)
