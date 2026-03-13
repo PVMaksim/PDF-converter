@@ -124,7 +124,7 @@ services:
       - default
       - internal
     command: >
-      sh -c "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000"
+      sh -c "cd /app && python -m alembic -c src/alembic.ini upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -164,6 +164,7 @@ services:
     networks:
       - default
       - internal
+    working_dir: /app
     command: celery -A src.tasks.celery_app.celery_app worker --loglevel=info --concurrency=2
     restart: unless-stopped
     logging:
@@ -190,6 +191,7 @@ services:
       - redis
     networks:
       - internal
+    working_dir: /app
     command: celery -A src.tasks.celery_app.celery_app beat --loglevel=info
     restart: unless-stopped
 
