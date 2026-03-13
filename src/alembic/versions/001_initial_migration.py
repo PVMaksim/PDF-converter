@@ -19,22 +19,9 @@ depends_on = None
 def upgrade() -> None:
     """Create initial schema with UUID-based models."""
     
-    # ENUM types - create if not exists
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE userplan AS ENUM ('free', 'pro', 'enterprise');
-        EXCEPTION
-            WHEN duplicate_object THEN null;
-        END $$;
-    """)
-    
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE jobstatus AS ENUM ('pending', 'processing', 'done', 'failed');
-        EXCEPTION
-            WHEN duplicate_object THEN null;
-        END $$;
-    """)
+    # ENUM types - create using raw SQL with IF NOT EXISTS
+    op.execute("CREATE TYPE IF NOT EXISTS userplan AS ENUM ('free', 'pro', 'enterprise')")
+    op.execute("CREATE TYPE IF NOT EXISTS jobstatus AS ENUM ('pending', 'processing', 'done', 'failed')")
     
     # Users table
     op.create_table(
@@ -43,7 +30,7 @@ def upgrade() -> None:
         sa.Column('tg_id', sa.BigInteger(), unique=True, nullable=True, index=True),
         sa.Column('email', sa.String(255), unique=True, nullable=True, index=True),
         sa.Column('hashed_password', sa.String(), nullable=True),
-        sa.Column('plan', sa.Enum('free', 'pro', 'enterprise', name='userplan'), nullable=False, server_default='free'),
+        sa.Column('plan', sa.Enum('free', 'pro', 'enterprise', name='userplan', create_type=False), nullable=False, server_default='free'),
         sa.Column('daily_limit', sa.Integer(), nullable=False, server_default='10'),
         sa.Column('created_at', sa.DateTime(), nullable=False, index=True),
     )
@@ -66,7 +53,7 @@ def upgrade() -> None:
         'conversion_jobs',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True, default=sa.text('gen_random_uuid()')),
         sa.Column('user_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False, index=True),
-        sa.Column('status', sa.Enum('pending', 'processing', 'done', 'failed', name='jobstatus'), nullable=False, server_default='pending', index=True),
+        sa.Column('status', sa.Enum('pending', 'processing', 'done', 'failed', name='jobstatus', create_type=False), nullable=False, server_default='pending', index=True),
         sa.Column('source_format', sa.String(16), nullable=False, server_default='pdf'),
         sa.Column('target_format', sa.String(16), nullable=False),
         sa.Column('source_file_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('file_records.id'), nullable=True),
