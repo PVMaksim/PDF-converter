@@ -19,7 +19,9 @@ from src.config import settings
 config = context.config
 
 # Устанавливаем URL базы данных из настроек
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Заменяем asyncpg на psycopg2 для Alembic
+db_url = settings.DATABASE_URL.replace('+asyncpg', '+psycopg2')
+config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
