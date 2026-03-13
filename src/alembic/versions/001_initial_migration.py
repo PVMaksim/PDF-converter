@@ -19,23 +19,6 @@ depends_on = None
 def upgrade() -> None:
     """Create initial schema with UUID-based models."""
     
-    # ENUM types - create using PL/pgSQL block to handle existing types
-    op.execute("""
-        DO $$ BEGIN
-            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userplan') THEN
-                CREATE TYPE userplan AS ENUM ('free', 'pro', 'enterprise');
-            END IF;
-        END $$;
-    """)
-    
-    op.execute("""
-        DO $$ BEGIN
-            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'jobstatus') THEN
-                CREATE TYPE jobstatus AS ENUM ('pending', 'processing', 'done', 'failed');
-            END IF;
-        END $$;
-    """)
-    
     # Users table
     op.create_table(
         'users',
@@ -43,7 +26,7 @@ def upgrade() -> None:
         sa.Column('tg_id', sa.BigInteger(), unique=True, nullable=True, index=True),
         sa.Column('email', sa.String(255), unique=True, nullable=True, index=True),
         sa.Column('hashed_password', sa.String(), nullable=True),
-        sa.Column('plan', sa.Enum('free', 'pro', 'enterprise', name='userplan', create_type=False), nullable=False, server_default='free'),
+        sa.Column('plan', sa.String(16), nullable=False, server_default='free'),
         sa.Column('daily_limit', sa.Integer(), nullable=False, server_default='10'),
         sa.Column('created_at', sa.DateTime(), nullable=False, index=True),
     )
@@ -66,7 +49,7 @@ def upgrade() -> None:
         'conversion_jobs',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True, default=sa.text('gen_random_uuid()')),
         sa.Column('user_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False, index=True),
-        sa.Column('status', sa.Enum('pending', 'processing', 'done', 'failed', name='jobstatus', create_type=False), nullable=False, server_default='pending', index=True),
+        sa.Column('status', sa.String(16), nullable=False, server_default='pending', index=True),
         sa.Column('source_format', sa.String(16), nullable=False, server_default='pdf'),
         sa.Column('target_format', sa.String(16), nullable=False),
         sa.Column('source_file_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('file_records.id'), nullable=True),
@@ -86,7 +69,3 @@ def downgrade() -> None:
     op.drop_table('conversion_jobs')
     op.drop_table('file_records')
     op.drop_table('users')
-    
-    # Drop ENUM types
-    op.execute('DROP TYPE IF EXISTS jobstatus')
-    op.execute('DROP TYPE IF EXISTS userplan')
