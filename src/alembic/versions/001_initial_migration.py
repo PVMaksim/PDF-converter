@@ -19,12 +19,22 @@ depends_on = None
 def upgrade() -> None:
     """Create initial schema with UUID-based models."""
     
-    # ENUM types
-    userplan_enum = sa.Enum('free', 'pro', 'enterprise', name='userplan')
-    userplan_enum.create(op.get_bind())
+    # ENUM types - create if not exists
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE userplan AS ENUM ('free', 'pro', 'enterprise');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
     
-    jobstatus_enum = sa.Enum('pending', 'processing', 'done', 'failed', name='jobstatus')
-    jobstatus_enum.create(op.get_bind())
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE jobstatus AS ENUM ('pending', 'processing', 'done', 'failed');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
     
     # Users table
     op.create_table(
