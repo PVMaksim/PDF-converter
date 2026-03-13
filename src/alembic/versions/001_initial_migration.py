@@ -19,9 +19,22 @@ depends_on = None
 def upgrade() -> None:
     """Create initial schema with UUID-based models."""
     
-    # ENUM types - create using raw SQL with IF NOT EXISTS
-    op.execute("CREATE TYPE IF NOT EXISTS userplan AS ENUM ('free', 'pro', 'enterprise')")
-    op.execute("CREATE TYPE IF NOT EXISTS jobstatus AS ENUM ('pending', 'processing', 'done', 'failed')")
+    # ENUM types - create using PL/pgSQL block to handle existing types
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userplan') THEN
+                CREATE TYPE userplan AS ENUM ('free', 'pro', 'enterprise');
+            END IF;
+        END $$;
+    """)
+    
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'jobstatus') THEN
+                CREATE TYPE jobstatus AS ENUM ('pending', 'processing', 'done', 'failed');
+            END IF;
+        END $$;
+    """)
     
     # Users table
     op.create_table(
