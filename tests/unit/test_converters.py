@@ -1,7 +1,6 @@
 """Unit tests for converter services."""
 import pytest
-from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.services.converter import get_converter, ConversionError
 
@@ -66,13 +65,20 @@ def test_pymupdf_supported_formats():
 async def test_gotenberg_health_check():
     """Test Gotenberg health check (mocked)."""
     from src.services.converter.gotenberg import GotenbergConverter
+    import httpx
     
     converter = GotenbergConverter(base_url="http://mocked:3000")
     
-    with patch('httpx.AsyncClient.get') as mock_get:
-        mock_response = AsyncMock()
-        mock_response.status_code = 200
-        mock_get.return_value.__aenter__.return_value = mock_response
+    # Create mock response
+    mock_response = httpx.Response(200, request=httpx.Request("GET", "http://mocked:3000/health"))
+    
+    # Mock the AsyncClient context manager
+    async with patch.object(httpx, 'AsyncClient') as mock_client_class:
+        mock_client_instance = MagicMock()
+        mock_client_instance.get = AsyncMock(return_value=mock_response)
+        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+        mock_client_class.return_value = mock_client_instance
         
         result = await converter.health_check()
         assert result is True
@@ -87,5 +93,4 @@ def test_ocr_converter_available():
     available = OCRConverter.is_available()
     
     # Тест проходит, если Tesseract установлен
-    # В CI это проверяется через установку пакета
     assert isinstance(available, bool)

@@ -2,12 +2,14 @@
 Application configuration.
 All settings are loaded from environment variables only.
 """
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
+
+    model_config = SettingsConfigDict(env_file='.env', case_sensitive=True)
 
     # =========================================================================
     # App settings
@@ -71,16 +73,11 @@ class Settings(BaseSettings):
     FILE_TTL_PRO_DAYS: int = 7
     RATE_LIMIT_PRO_PER_HOUR: int = 100
 
-    # =========================================================================
     # Local fallback storage (development only)
     # =========================================================================
     UPLOAD_DIR: str = "src/static/uploads"
     OUTPUT_DIR: str = "src/static/outputs"
     USE_LOCAL_STORAGE: bool = False  # Переключатель для fallback
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 
 settings = Settings()
