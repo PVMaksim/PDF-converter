@@ -1,7 +1,5 @@
-"""
-Dockerfile for PDF Converter Bot backend.
-Based on Python 3.11-slim with all necessary dependencies.
-"""
+# PDF Converter Bot - Backend Dockerfile
+
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -24,12 +22,14 @@ RUN apt-get update && apt-get install -y \
 
 # Копируем requirements сначала для лучшего кэширования
 COPY requirements.txt .
+
+# Копируем alembic конфигурацию
+COPY src/alembic.ini ./alembic.ini
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем исходный код
 COPY src/ ./src/
-COPY alembic/ ./alembic/
-COPY alembic.ini .
 
 # Создаём директории для статических файлов
 RUN mkdir -p src/static/uploads src/static/outputs

@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+const API_BASE_URL = typeof import.meta !== 'undefined' && import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL 
+  : '/api/v1';
 
 // Создаём axios инстанс
 export const api = axios.create({
@@ -55,9 +57,12 @@ export const authAPI = {
     api.post<AuthResponse>('/auth/register', data),
 
   login: (data: LoginData) =>
-    api.post<AuthResponse>('/auth/token', new URLSearchParams(data), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    }),
+    api.post<AuthResponse>('/auth/token', 
+      new URLSearchParams({ username: data.username, password: data.password }),
+      {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      }
+    ),
 };
 
 // ============================================================================
@@ -110,6 +115,7 @@ export interface ConversionResponse {
 export interface JobStatusResponse {
   job_id: string;
   status: ConversionStatus;
+  target_format: string;
   result_file_id: string | null;
   error_message: string | null;
   created_at: string;

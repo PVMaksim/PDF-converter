@@ -5,8 +5,8 @@ services:
   # ===========================================================================
   frontend:
     build:
-      context: ./frontend
-      dockerfile: ../docker/Dockerfile.frontend
+      context: .
+      dockerfile: docker/Dockerfile.frontend
     container_name: pdf_bot_frontend
     ports:
       - "3000:80"

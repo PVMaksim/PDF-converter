@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -19,9 +18,8 @@ export default function ConvertPage() {
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: filesAPI.upload,
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success('Файл успешно загружен!');
-      return data.data;
     },
     onError: (error: any) => {
       toast.error(
@@ -32,19 +30,26 @@ export default function ConvertPage() {
 
   // Convert mutation
   const convertMutation = useMutation({
-    mutationFn: conversionsAPI.create,
+    mutationFn: async (uploadResult: { file_id: string }) => {
+      return conversionsAPI.create({
+        file_id: uploadResult.file_id,
+        target_format: selectedFormat!,
+      });
+    },
     onSuccess: (data) => {
       const job = data.data;
+      const fileId = uploadMutation.data?.data.file_id || '';
+      
       addJob({
         job_id: job.job_id,
-        file_id: uploadMutation.data?.file_id || '',
+        file_id: fileId,
         filename: selectedFile?.name || '',
         target_format: job.target_format,
         download_url: '',
       });
       setCurrentJob({
         job_id: job.job_id,
-        file_id: uploadMutation.data?.file_id || '',
+        file_id: fileId,
         filename: selectedFile?.name || '',
         target_format: job.target_format,
         status: job.status,
@@ -75,13 +80,14 @@ export default function ConvertPage() {
 
     try {
       // Upload file
-      const uploadResult = await uploadMutation.mutateAsync(selectedFile);
+      await uploadMutation.mutateAsync(selectedFile);
+      
+      // Get file_id from upload result
+      const uploadResult = uploadMutation.data?.data;
+      if (!uploadResult?.file_id) return;
 
       // Create conversion job
-      await convertMutation.mutateAsync({
-        file_id: uploadResult.file_id,
-        target_format: selectedFormat,
-      });
+      await convertMutation.mutateAsync({ file_id: uploadResult.file_id });
     } catch (error) {
       console.error('Conversion error:', error);
     }
