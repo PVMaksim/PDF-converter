@@ -25,6 +25,7 @@ COPY requirements.txt .
 
 # Копируем alembic конфигурацию
 COPY src/alembic.ini ./alembic.ini
+COPY src/alembic ./alembic
 
 RUN pip install --no-cache-dir -r requirements.txt
 
