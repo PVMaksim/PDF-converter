@@ -18,6 +18,17 @@ from ...services.converter import get_converter, ConversionError
 from ...middleware.rate_limiter import limiter, get_limit_for_plan
 from ...schemas import ConversionCreate, ConversionResponse, JobStatusResponse
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+
+
+async def get_current_user_with_plan(
+    db: AsyncSession = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+) -> User:
+    """Get current user — required for conversion endpoints."""
+    from .auth import get_current_user
+    return await get_current_user(token=token, db=db)
+
 router = APIRouter(prefix="/conversions", tags=["conversions"])
 
 # Поддерживаемые форматы
@@ -117,15 +128,3 @@ async def get_job_status(
         created_at=job.created_at.isoformat(),
         completed_at=job.completed_at.isoformat() if job.completed_at else None,
     )
-
-
-async def get_current_user_with_plan(
-    db: AsyncSession = Depends(get_db),
-    token: str = Depends(oauth2_scheme),
-) -> User:
-    """Get current user — required for conversion endpoints."""
-    from .auth import get_current_user
-    return await get_current_user(token=token, db=db)
-
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
