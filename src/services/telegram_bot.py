@@ -37,7 +37,7 @@ def build_application() -> Application:
     """
     global _application
 
-    from ..handlers.start import start_handler, help_command
+    from ..handlers.start import start_command, help_command
     from ..handlers.convert import document_handler, handle_format_selection
     from ..handlers.status import status_handler
     from ..handlers.admin import stats_command, cleanup_command
@@ -46,7 +46,7 @@ def build_application() -> Application:
     app = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
 
     # Регистрируем обработчики команд
-    app.add_handler(CommandHandler("start", start_handler))
+    app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("status", status_handler))
     app.add_handler(CommandHandler("stats", stats_command))
